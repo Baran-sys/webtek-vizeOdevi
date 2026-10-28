@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uygulama yanıt vermiyor</title>
+  <link rel="stylesheet" href="/css/temel.css">
+</head>
+<body>
+  <main class="kapsayici" style="padding-block: 2rem;">
+    <h1>Uygulama yanıt vermiyor</h1>
+    <p class="bildirim bildirim-hata" role="alert">Apache isteği uygulama servisine iletemedi.</p>
+    <p>Kontrol edin: uygulama servisi docker-compose.yml içinde açık mı, container çalışıyor mu
+      (<code>docker compose ps -a</code>), günlükte hata var mı (<code>docker compose logs uygulama</code>)
+      ve uygulama UYGULAMA_ADRES'teki portu dinliyor mu.</p>
+  </main>
+</body>
+</html>

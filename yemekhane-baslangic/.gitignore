@@ -1,0 +1,13 @@
+# İşletim sistemi ve düzenleyici dosyaları
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Derleme çıktıları (framework'ünüze göre ekleyin)
+node_modules/
+bin/
+obj/
+vendor/
+__pycache__/
+target/

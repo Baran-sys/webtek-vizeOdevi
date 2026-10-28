@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yemekhane Otomasyonu · Başlangıç</title>
+  <link rel="stylesheet" href="/css/temel.css">
+  <style>
+    /* Yalnızca bu geçici sayfaya ait stiller */
+    .fis {
+      background: var(--yuzey);
+      margin-block: 2rem;
+      padding: 1.5rem var(--bosluk);
+      border-radius: var(--kose);
+      /* yemek fişi görünümü: alt kenarda yırtma çizgisi */
+      border-bottom: 2px dashed var(--cizgi);
+    }
+    .fis h1 { margin-bottom: 0.25rem; }
+    .fis .alt { color: var(--metin-soluk); margin-bottom: 1.5rem; }
+    .servisler { width: 100%; border-collapse: collapse; font-size: var(--boyut-kucuk); }
+    .servisler th, .servisler td { text-align: left; padding: 0.5rem 0.25rem; border-bottom: 1px solid var(--cizgi); }
+    .servisler td:last-child { white-space: nowrap; }
+    #uygulama-durumu { margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <main class="kapsayici">
+    <section class="fis">
+      <h1>Yemekhane Otomasyonu</h1>
+      <p class="alt">Apache çalışıyor. Bu sayfa başlangıç paketine ait; kendi giriş ekranınızla değiştirin.</p>
+
+      <div class="tablo-kaydir">
+        <table class="servisler">
+          <thead>
+            <tr><th>Servis</th><th>Görevi</th><th>Bilgisayarınızdan</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>frontend</td><td>HTML/CSS, yönlendirme</td><td>localhost:8080</td></tr>
+            <tr><td>mysql-primary</td><td>yazma</td><td>localhost:3307</td></tr>
+            <tr><td>mysql-replica</td><td>okuma, salt okunur</td><td>localhost:3308</td></tr>
+            <tr><td>redis</td><td>menü önbelleği, oturum</td><td>localhost:6379</td></tr>
+            <tr><td>uygulama</td><td>sizin yazacağınız servis</td><td>Apache üzerinden</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p id="uygulama-durumu" class="bildirim" role="status">Uygulama servisi kontrol ediliyor…</p>
+    </section>
+  </main>
+
+  <script>
+    // Web API modunda /api/ isteği uygulamaya gider. 502/503 ise uygulama yok ya da çalışmıyor.
+    const kutu = document.getElementById('uygulama-durumu');
+    fetch('/api/', { headers: { Accept: 'application/json' } })
+      .then(yanit => {
+        if (yanit.status === 502 || yanit.status === 503) {
+          kutu.textContent = 'Uygulama servisine ulaşılamıyor. docker-compose.yml içindeki uygulama servisini ekleyip "docker compose up -d" çalıştırın.';
+          kutu.classList.add('bildirim-hata');
+        } else {
+          kutu.textContent = 'Uygulama servisi yanıt veriyor (HTTP ' + yanit.status + ').';
+          kutu.classList.add('bildirim-basari');
+        }
+      })
+      .catch(() => {
+        kutu.textContent = 'İstek gönderilemedi. Apache günlüğüne bakın: docker compose logs frontend';
+        kutu.classList.add('bildirim-hata');
+      });
+  </script>
+</body>
+</html>

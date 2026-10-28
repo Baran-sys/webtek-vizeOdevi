@@ -1,0 +1,7 @@
+# Betikler ve SQL her işletim sisteminde LF satır sonuyla kalsın
+# (Windows'ta CRLF'ye çevrilirse container içinde çalışmaz)
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.conf text eol=lf
+*.yml  text eol=lf
+Dockerfile text eol=lf

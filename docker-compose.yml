@@ -1,0 +1,4 @@
+name: yemekhane
+
+include:
+  - yemekhane-baslangic/docker-compose.yml

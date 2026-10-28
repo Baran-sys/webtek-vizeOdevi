@@ -1,0 +1,157 @@
+# =====================================================================
+# Yemekhane Otomasyonu · Başlangıç paketi
+# Çalıştırma:   docker compose up -d
+# Durum:        docker compose ps -a
+# Sıfırlama:    docker compose down -v   (tüm veri silinir, yeniden üretilir)
+# =====================================================================
+name: yemekhane
+
+# Ortak ayarlar (YAML anchor). Ders ortamı içindir; şifreler bilerek açıktır.
+x-mysql-ortak: &mysql-ortak
+  image: mysql:8.4
+  restart: unless-stopped
+  healthcheck:
+    # 127.0.0.1 bilerek kullanılır: ilk kurulum sırasında sunucu yalnızca
+    # soket üzerinden açıktır, TCP yanıt vermeye başladığında kurulum bitmiştir.
+    test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+    interval: 5s
+    timeout: 5s
+    retries: 30
+    start_period: 60s
+
+# Uygulama servisinin alacağı ortam değişkenleri.
+# Container'lar birbirine servis adıyla ve İÇ portla (3306, 6379) bağlanır.
+# 3307 / 3308 yalnızca kendi bilgisayarınızdan (DBeaver, Workbench) bağlanmak içindir.
+x-uygulama-ortam: &uygulama-ortam
+  TZ: Europe/Istanbul
+  DB_YAZMA_HOST: mysql-primary
+  DB_OKUMA_HOST: mysql-replica
+  DB_PORT: "3306"
+  DB_ADI: yemekhane
+  DB_KULLANICI: yemekhane_app
+  DB_SIFRE: Uyg_2026
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+
+services:
+
+  # ---------------------------------------------------------------
+  # Kaynak (yazma) veritabanı · şema ve örnek veri ilk açılışta yüklenir
+  # ---------------------------------------------------------------
+  mysql-primary:
+    <<: *mysql-ortak
+    command: [--server-id=1, --gtid-mode=ON, --enforce-gtid-consistency=ON, --log-bin=mysql-bin,
+              --character-set-server=utf8mb4, --collation-server=utf8mb4_tr_0900_ai_ci,
+              --default-time-zone=+03:00]
+    environment:
+      TZ: Europe/Istanbul
+      MYSQL_ROOT_PASSWORD: yemekhane_kok
+      MYSQL_DATABASE: yemekhane
+      MYSQL_USER: yemekhane_app
+      MYSQL_PASSWORD: Uyg_2026
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - mysql-primary-veri:/var/lib/mysql
+
+  # ---------------------------------------------------------------
+  # Replika (okuma) veritabanı · veriyi replica-setup ile kaynaktan alır
+  # ---------------------------------------------------------------
+  mysql-replica:
+    <<: *mysql-ortak
+    command: [--server-id=2, --gtid-mode=ON, --enforce-gtid-consistency=ON, --log-bin=mysql-bin,
+              --character-set-server=utf8mb4, --collation-server=utf8mb4_tr_0900_ai_ci,
+              --default-time-zone=+03:00, --relay-log=relay-bin]
+    environment:
+      TZ: Europe/Istanbul
+      MYSQL_ROOT_PASSWORD: yemekhane_kok
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-replica-veri:/var/lib/mysql
+
+  # ---------------------------------------------------------------
+  # Replikayı bir kez kurar, salt okunur yapar ve çıkar (exit 0).
+  # Replika zaten kuruluysa hiçbir şey yapmadan çıkar.
+  # ---------------------------------------------------------------
+  replica-setup:
+    image: mysql:8.4
+    entrypoint: ["bash", "/replica-setup.sh"]
+    restart: "no"
+    environment:
+      MYSQL_ROOT_PASSWORD: yemekhane_kok
+      MYSQL_DATABASE: yemekhane
+      MYSQL_USER: yemekhane_app
+      MYSQL_PASSWORD: Uyg_2026
+      REPL_USER: repl
+      REPL_PASSWORD: Repl_2026
+    volumes:
+      - ./db/replica-setup.sh:/replica-setup.sh:ro
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+      mysql-replica:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------
+  # Redis · menü önbelleği ve oturum deposu (AOF açık, yeniden başlatmada veri kalır)
+  # ---------------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-veri:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------
+  # Apache 2.4 · HTML/CSS'i sunar, uygulama isteklerini uygulama servisine iletir.
+  # Mod seçimi: aşağıdaki "-D WEBAPI" değerini MVC yolunu seçtiyseniz "-D MVC" yapın.
+  # ---------------------------------------------------------------
+  frontend:
+    build: ./apache
+    restart: unless-stopped
+    command: ["httpd-foreground", "-D", "WEBAPI"]
+    environment:
+      # Uygulamanızın container içinde dinlediği adres. Port farklıysa burayı değiştirin.
+      UYGULAMA_ADRES: http://uygulama:8000
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/local/apache2/htdocs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/saglik.txt"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------
+  # UYGULAMA · BU SERVİSİ SİZ YAZACAKSINIZ (Aşama 2)
+  # 1. ./uygulama klasörüne kodunuzu ve Dockerfile'ı koyun.
+  # 2. Uygulama container içinde 8000 portunu dinlesin (ya da UYGULAMA_ADRES'i değiştirin).
+  # 3. Aşağıdaki satırların başındaki "# " işaretlerini kaldırın.
+  # ---------------------------------------------------------------
+  # uygulama:
+  #   build: ./uygulama
+  #   restart: unless-stopped
+  #   environment:
+  #     <<: *uygulama-ortam
+  #   depends_on:
+  #     mysql-primary:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     replica-setup:
+  #       condition: service_completed_successfully
+
+volumes:
+  mysql-primary-veri:
+  mysql-replica-veri:
+  redis-veri:
