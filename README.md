@@ -6,7 +6,7 @@
 
 ---
 
-## 📌 Proje Genel Bakış
+## Proje Genel Bakış
 
 Bu proje, kampüs yemekhanesi için menü, rezervasyon ve bakiye işlemlerini yöneten; Docker tabanlı çoklu konteyner mimarisine sahip bir web otomasyon sistemidir.
 
@@ -20,7 +20,7 @@ Bu proje, kampüs yemekhanesi için menü, rezervasyon ve bakiye işlemlerini y�
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## Hızlı Başlangıç
 
 Depo kökünde tek bir komut ile tüm altyapı ayağa kaldırılabilir:
 
@@ -42,7 +42,7 @@ docker compose ps -a
 
 ---
 
-## 🧪 Aşama 1: Doğrulama Komutları
+## Aşama 1: Doğrulama Komutları
 
 Aşama 1 kapsamında föyde belirtilen tüm testler yapılmış ve doğrulanmıştır:
 
@@ -85,7 +85,7 @@ docker compose exec redis redis-cli ping
 
 ---
 
-## 📄 Rapor ve Ekran Görüntüleri
+## Rapor ve Ekran Görüntüleri
 
 * **Detaylı Aşama 1 Raporu:** [`rapor/Asama_1_Raporu.pdf`](rapor/Asama_1_Raporu.pdf)
 * **Ekran Görüntüleri Klasörü:** [`screenshots/`](screenshots/)
